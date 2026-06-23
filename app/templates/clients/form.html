@@ -1,0 +1,93 @@
+{% from 'partials/_icons.html' import icon %}
+{% extends 'base.html' %}
+
+{% set is_edit = (action == 'edit') %}
+{% block title %}{{ 'Edit' if is_edit else 'New' }} Client{% endblock %}
+{% block page_title %}{{ 'Edit Client' if is_edit else 'Register New Client' }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('clients.list') }}" style="color:var(--tcc-muted);text-decoration:none">Clients</a></li>
+<li class="breadcrumb-item active">{{ 'Edit' if is_edit else 'New' }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="tcc-card" style="max-width:800px">
+  <div class="tcc-card-header">
+    {{ icon('users', 18) }}
+    <h2>{{ 'Edit Client' if is_edit else 'Register New Client' }}</h2>
+  </div>
+  <div class="tcc-card-body">
+    <form method="POST"
+          action="{{ url_for('clients.edit', id=id) if is_edit else url_for('clients.new') }}"
+          novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="tcc-form-row">
+        <div class="tcc-form-group">
+          <label for="name">Full Name <span class="req">*</span></label>
+          <input type="text" id="name" name="name" class="tcc-input"
+                 value="{{ client.name or '' }}" required maxlength="200"
+                 placeholder="Client's full name">
+        </div>
+        <div class="tcc-form-group">
+          <label for="organization">Organisation</label>
+          <input type="text" id="organization" name="organization" class="tcc-input"
+                 value="{{ client.organization or '' }}" placeholder="School, company, or institution">
+        </div>
+      </div>
+
+      <div class="tcc-form-row">
+        <div class="tcc-form-group">
+          <label for="phone">Phone</label>
+          <input type="tel" id="phone" name="phone" class="tcc-input"
+                 value="{{ client.phone or '' }}" placeholder="+224 xxx xxx xxx">
+        </div>
+        <div class="tcc-form-group">
+          <label for="email">Email</label>
+          <input type="email" id="email" name="email" class="tcc-input"
+                 value="{{ client.email or '' }}" placeholder="client@example.com">
+        </div>
+      </div>
+
+      <div class="tcc-form-row">
+        <div class="tcc-form-group">
+          <label for="country">Country</label>
+          <input type="text" id="country" name="country" class="tcc-input"
+                 value="{{ client.country or '' }}" placeholder="e.g. Guinea">
+        </div>
+        <div class="tcc-form-group">
+          <label for="date_registered">Date Registered</label>
+          <input type="date" id="date_registered" name="date_registered" class="tcc-input"
+                 value="{{ client.date_registered or '' }}">
+        </div>
+      </div>
+
+      <div class="tcc-form-group">
+        <label for="address">Address</label>
+        <textarea id="address" name="address" class="tcc-textarea" rows="2"
+                  placeholder="Full address…">{{ client.address or '' }}</textarea>
+      </div>
+
+      <div class="tcc-form-group">
+        <label for="contract_info">Contract Information</label>
+        <textarea id="contract_info" name="contract_info" class="tcc-textarea" rows="2"
+                  placeholder="Contract number, terms, or reference…">{{ client.contract_info or '' }}</textarea>
+      </div>
+
+      <div class="tcc-form-group">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" class="tcc-textarea" rows="2"
+                  placeholder="Any additional notes about this client…">{{ client.notes or '' }}</textarea>
+      </div>
+
+      <div style="display:flex;gap:.75rem;margin-top:1.5rem">
+        <button type="submit" class="btn-gold">
+          {{ icon('check', 16) }} {{ 'Save Changes' if is_edit else 'Register Client' }}
+        </button>
+        <a href="{{ url_for('clients.detail', id=id) if is_edit else url_for('clients.list') }}"
+           class="btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
