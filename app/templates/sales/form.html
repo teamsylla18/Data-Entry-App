@@ -1,0 +1,134 @@
+{% from 'partials/_icons.html' import icon %}
+{% extends 'base.html' %}
+
+{% block title %}Record Sale{% endblock %}
+{% block page_title %}Record New Sale{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('sales.list') }}" style="color:var(--tcc-muted);text-decoration:none">Sales</a></li>
+<li class="breadcrumb-item active">New Sale</li>
+{% endblock %}
+
+{% block content %}
+<div class="tcc-card" style="max-width:800px">
+  <div class="tcc-card-header">
+    {{ icon('chart-bar', 18) }}
+    <h2>Record New Sale</h2>
+  </div>
+  <div class="tcc-card-body">
+    <form method="POST" action="{{ url_for('sales.new') }}" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="tcc-form-row">
+        <div class="tcc-form-group">
+          <label for="product_id">Product <span class="req">*</span></label>
+          <select id="product_id" name="product_id" class="tcc-select" required>
+            <option value="">Select product…</option>
+            {% for p in products %}
+            <option value="{{ p.id }}" {{ 'selected' if sale.product_id == p.id|string }}>{{ p.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="tcc-form-group">
+          <label for="client_id">Client <span class="req">*</span></label>
+          <select id="client_id" name="client_id" class="tcc-select" required>
+            <option value="">Select client…</option>
+            {% for c in clients %}
+            <option value="{{ c.id }}" {{ 'selected' if sale.client_id == c.id|string }}>{{ c.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="tcc-form-row">
+        <div class="tcc-form-group">
+          <label for="sale_amount">Sale Amount (GNF) <span class="req">*</span></label>
+          <input type="number" id="sale_amount" name="sale_amount" class="tcc-input"
+                 value="{{ sale.sale_amount or '' }}" min="1" required
+                 placeholder="e.g. 3000000" oninput="updateBalance()">
+        </div>
+        <div class="tcc-form-group">
+          <label for="discount">Discount (GNF)</label>
+          <input type="number" id="discount" name="discount" class="tcc-input"
+                 value="{{ sale.discount or '' }}" min="0" placeholder="0"
+                 oninput="updateBalance()">
+          <span class="form-hint">Leave blank for no discount.</span>
+        </div>
+      </div>
+
+      <div class="tcc-form-row">
+        <div class="tcc-form-group">
+          <label for="sale_date">Sale Date</label>
+          <input type="date" id="sale_date" name="sale_date" class="tcc-input"
+                 value="{{ sale.sale_date or '' }}">
+        </div>
+        <div class="tcc-form-group">
+          <label for="payment_method">Payment Method <span class="req">*</span></label>
+          <select id="payment_method" name="payment_method" class="tcc-select" required>
+            <option value="">Select method…</option>
+            {% for val, label in payment_methods %}
+            <option value="{{ val }}" {{ 'selected' if sale.payment_method == val }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      {# Live balance preview #}
+      <div id="balance-preview" class="tcc-card mb-3" style="background:#f8fafc;display:none">
+        <div class="tcc-card-body" style="padding:.85rem 1.25rem">
+          <div style="display:flex;gap:2rem;font-size:.875rem">
+            <span><strong>Sale Amount:</strong> <span id="prev-amount">GNF 0</span></span>
+            <span><strong>Discount:</strong> <span id="prev-discount">GNF 0</span></span>
+            <span><strong>Net Due:</strong> <span id="prev-net" style="font-weight:700;color:var(--tcc-navy)">GNF 0</span></span>
+          </div>
+        </div>
+      </div>
+
+      {# Optional first payment #}
+      <div class="tcc-card mb-3" style="border:1.5px dashed var(--tcc-border)">
+        <div class="tcc-card-header" style="background:#f8fafc">
+          {{ icon('currency', 16) }}
+          <h3 style="font-size:.875rem">Initial Payment (Optional)</h3>
+        </div>
+        <div class="tcc-card-body">
+          <div class="tcc-form-row">
+            <div class="tcc-form-group" style="margin-bottom:0">
+              <label for="first_payment">Amount Paid Now (GNF)</label>
+              <input type="number" id="first_payment" name="first_payment" class="tcc-input"
+                     value="{{ sale.first_payment or '' }}" min="0" placeholder="0">
+              <span class="form-hint">Leave blank to record payment later.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tcc-form-group">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" class="tcc-textarea" rows="2"
+                  placeholder="Any notes about this sale…">{{ sale.notes or '' }}</textarea>
+      </div>
+
+      <div style="display:flex;gap:.75rem;margin-top:1.5rem">
+        <button type="submit" class="btn-gold">
+          {{ icon('check', 16) }} Record Sale
+        </button>
+        <a href="{{ url_for('sales.list') }}" class="btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateBalance() {
+  const amount   = parseInt(document.getElementById('sale_amount').value || 0);
+  const discount = parseInt(document.getElementById('discount').value || 0);
+  const net      = Math.max(0, amount - discount);
+  document.getElementById('prev-amount').textContent   = formatGNF(amount);
+  document.getElementById('prev-discount').textContent = formatGNF(discount);
+  document.getElementById('prev-net').textContent      = formatGNF(net);
+  document.getElementById('balance-preview').style.display = amount > 0 ? 'block' : 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,248 @@
+{% from 'partials/_icons.html' import icon %}
+{% from 'partials/_manager_modal.html' import manager_modal %}
+{% extends 'base.html' %}
+
+{% block title %}Sale #{{ sale.id }}{% endblock %}
+{% block page_title %}Sale — {{ sale.client_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('sales.list') }}" style="color:var(--tcc-muted);text-decoration:none">Sales</a></li>
+<li class="breadcrumb-item active">#{{ sale.id }}</li>
+{% endblock %}
+
+{% block topbar_actions %}
+{% if balance > 0 %}
+<button type="button" class="btn-gold"
+        onclick="openConfirmModal('modal-payment')">
+  {{ icon('currency', 16) }} Record Payment
+</button>
+{% endif %}
+{% if session.user_role in ['super_admin', 'administrator', 'finance_officer'] %}
+<a href="{{ url_for('receipts.generate', sale_id=sale.id) }}" class="btn-navy">
+  {{ icon('receipt', 16) }} Generate Receipt
+</a>
+{% endif %}
+{% if session.user_role in ['super_admin', 'administrator'] %}
+<button type="button" class="btn-danger-sm"
+        onclick="openConfirmModal('modal-delete')">
+  {{ icon('trash', 15) }} Delete
+</button>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{# Modals #}
+{{ manager_modal('modal-delete', 'Delete Sale',
+    'This will soft-delete the sale record for <strong>' ~ sale.client_name ~ '</strong>.',
+    url_for('sales.delete', id=sale.id),
+    btn_text='Delete Sale') }}
+
+{# Add payment modal — custom, no manager_modal macro since we have extra fields #}
+<div id="modal-payment" class="tcc-modal-backdrop" style="display:none">
+  <div class="tcc-modal" onclick="event.stopPropagation()">
+    <div class="tcc-modal-header">
+      {{ icon('currency', 18) }}
+      <h3>Record Payment</h3>
+      <button class="modal-close" onclick="closeConfirmModal('modal-payment')">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('sales.add_payment', id=sale.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="tcc-modal-body">
+        <div style="background:#f8fafc;border-radius:.45rem;padding:.75rem 1rem;margin-bottom:1rem;font-size:.875rem">
+          <strong>Outstanding Balance:</strong>
+          <span style="color:{{ '#dc2626' if balance > 0 else '#059669' }};font-weight:700;margin-left:.5rem">
+            {{ balance | gnf }}
+          </span>
+        </div>
+        <div class="tcc-form-row">
+          <div class="tcc-form-group">
+            <label>Amount (GNF) <span class="req">*</span></label>
+            <input type="number" name="amount" class="tcc-input"
+                   min="1" max="{{ balance }}" placeholder="Amount paid"
+                   value="{{ balance if balance > 0 else '' }}" required>
+          </div>
+          <div class="tcc-form-group">
+            <label>Payment Date</label>
+            <input type="date" name="payment_date" class="tcc-input">
+          </div>
+        </div>
+        <div class="tcc-form-group">
+          <label>Method</label>
+          <select name="payment_method" class="tcc-select">
+            {% for val, label in payment_methods %}
+            <option value="{{ val }}" {{ 'selected' if val == sale.payment_method }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="tcc-form-group">
+          <label>Notes</label>
+          <input type="text" name="notes" class="tcc-input" placeholder="Optional notes">
+        </div>
+        <div class="tcc-form-group" style="margin-bottom:0">
+          <label>Manager Password <span class="req">*</span></label>
+          <input type="password" name="manager_password" class="tcc-input"
+                 placeholder="Required to record payment" required autocomplete="off">
+        </div>
+      </div>
+      <div class="tcc-modal-footer">
+        <button type="button" class="btn-outline" onclick="closeConfirmModal('modal-payment')">Cancel</button>
+        <button type="submit" class="btn-gold">{{ icon('check', 15) }} Record</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{# ── Summary ────────────────────────────────────────────────────────────────── #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Sale Amount</div>
+      <div class="stat-value" style="font-size:1rem">{{ sale.sale_amount | gnf }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Discount</div>
+      <div class="stat-value" style="font-size:1rem">{{ (sale.discount or 0) | gnf }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Total Paid</div>
+      <div class="stat-value" style="font-size:1rem;color:#059669">{{ sale.amount_paid | gnf }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Balance</div>
+      <div class="stat-value" style="font-size:1rem;color:{{ '#dc2626' if balance > 0 else '#059669' }}">
+        {{ balance | gnf }}
+      </div>
+      <div class="stat-sub">{{ 'Outstanding' if balance > 0 else 'Fully Paid' }}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  {# Sale info #}
+  <div class="col-12 col-md-4">
+    <div class="tcc-card">
+      <div class="tcc-card-header">{{ icon('chart-bar', 18) }} <h3>Sale Details</h3></div>
+      <div class="tcc-card-body">
+        <div style="display:flex;flex-direction:column;gap:.9rem">
+          <div class="detail-field">
+            <span class="detail-label">Client</span>
+            <a href="{{ url_for('clients.detail', id=sale.client_id) }}"
+               class="detail-value" style="color:var(--tcc-navy);text-decoration:none">
+              {{ sale.client_name }}
+              {% if sale.client_org %}<div style="font-size:.8rem;color:var(--tcc-muted)">{{ sale.client_org }}</div>{% endif %}
+            </a>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Product</span>
+            <a href="{{ url_for('products.detail', id=sale.product_id) }}"
+               class="detail-value" style="color:var(--tcc-navy);text-decoration:none">
+              {{ sale.product_name }}
+            </a>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Sale Date</span>
+            <span class="detail-value">{{ sale.sale_date | fmtdate }}</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Payment Method</span>
+            <span class="detail-value">{{ sale.payment_method | replace('_',' ') | title }}</span>
+          </div>
+          {% if sale.notes %}
+          <div class="detail-field">
+            <span class="detail-label">Notes</span>
+            <span class="detail-value" style="font-size:.85rem;color:var(--tcc-muted)">{{ sale.notes }}</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Payments + Receipts #}
+  <div class="col-12 col-md-8">
+    <div class="tcc-card" data-tabs>
+      <div class="tcc-card-header" style="padding-bottom:0;border-bottom:none">
+        <div class="tcc-tabs" style="width:100%">
+          <button class="tab-btn active" data-tab="payments">Payments ({{ payments | length }})</button>
+          <button class="tab-btn" data-tab="receipts">Receipts ({{ receipts | length }})</button>
+        </div>
+      </div>
+      <div class="tcc-card-body">
+
+        {# Payments tab #}
+        <div id="tab-payments" class="tab-panel active">
+          {% if payments %}
+          <div class="tcc-table-wrap">
+            <table class="tcc-table">
+              <thead>
+                <tr><th>Date</th><th>Amount</th><th>Method</th><th>Recorded By</th><th>Notes</th></tr>
+              </thead>
+              <tbody>
+                {% for py in payments %}
+                <tr>
+                  <td class="muted">{{ py.payment_date | fmtdate }}</td>
+                  <td class="amount" style="color:#059669">{{ py.amount | gnf }}</td>
+                  <td class="muted">{{ py.payment_method | replace('_',' ') | title }}</td>
+                  <td class="muted">{{ py.recorded_by_name }}</td>
+                  <td class="muted">{{ py.notes or '—' }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">
+            {{ icon('currency', 36) }}
+            <p>No payments recorded yet.{% if balance > 0 %} Click "Record Payment" above.{% endif %}</p>
+          </div>
+          {% endif %}
+        </div>
+
+        {# Receipts tab #}
+        <div id="tab-receipts" class="tab-panel">
+          {% if receipts %}
+          <div class="tcc-table-wrap">
+            <table class="tcc-table">
+              <thead><tr><th>Receipt #</th><th>Date</th><th>Amount</th><th></th></tr></thead>
+              <tbody>
+                {% for r in receipts %}
+                <tr>
+                  <td><strong>{{ r.receipt_number }}</strong></td>
+                  <td class="muted">{{ r.issue_date | fmtdate }}</td>
+                  <td class="amount">{{ r.amount | gnf }}</td>
+                  <td>
+                    <a href="{{ url_for('receipts.view', id=r.id) }}" class="btn-sm-link">
+                      {{ icon('eye', 14) }} View
+                    </a>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">
+            {{ icon('receipt', 36) }}
+            <p>No receipts generated for this sale yet.</p>
+          </div>
+          {% endif %}
+          {% if session.user_role in ['super_admin','administrator','finance_officer'] %}
+          <div style="margin-top:1rem">
+            <a href="{{ url_for('receipts.generate', sale_id=sale.id) }}" class="btn-gold">
+              {{ icon('plus', 15) }} Generate Receipt
+            </a>
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

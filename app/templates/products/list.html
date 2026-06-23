@@ -1,0 +1,126 @@
+{% from 'partials/_icons.html' import icon %}
+{% extends 'base.html' %}
+
+{% block title %}Products{% endblock %}
+{% block page_title %}Product Registry{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Products</li>{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('products.new') }}" class="btn-gold">
+  {{ icon('plus', 16) }} New Product
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="tcc-card">
+  {# Filter bar #}
+  <div class="tcc-card-body" style="border-bottom:1px solid var(--tcc-border);padding-bottom:1rem">
+    <form method="GET" class="filter-bar">
+      <input type="search" name="q" class="search-input" placeholder="Search products…"
+             value="{{ q }}">
+      <select name="category">
+        <option value="">All Categories</option>
+        {% for val, label in categories %}
+        <option value="{{ val }}" {{ 'selected' if category == val }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="status">
+        <option value="">All Statuses</option>
+        {% for val, label in statuses %}
+        <option value="{{ val }}" {{ 'selected' if status == val }}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit" class="btn-navy">Filter</button>
+      {% if q or category or status %}
+      <a href="{{ url_for('products.list') }}" class="btn-outline">Clear</a>
+      {% endif %}
+    </form>
+    <small class="text-muted">{{ total }} product{{ 's' if total != 1 }}</small>
+  </div>
+
+  {# Table #}
+  <div class="tcc-table-wrap">
+    <table class="tcc-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Version</th>
+          <th>Status</th>
+          <th>Launch Date</th>
+          <th>Sales</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr>
+          <td>
+            <a href="{{ url_for('products.detail', id=p.id) }}"
+               style="font-weight:600;color:var(--tcc-navy);text-decoration:none">
+              {{ p.name }}
+            </a>
+            {% if p.license_number %}
+            <div class="muted" style="font-size:.75rem;color:var(--tcc-muted)">{{ p.license_number }}</div>
+            {% endif %}
+          </td>
+          <td class="muted">{{ p.category | replace('_',' ') | title }}</td>
+          <td class="muted">{{ p.current_version or '—' }}</td>
+          <td>
+            <span class="badge-status badge-{{ p.status }}">{{ p.status | replace('_',' ') | title }}</span>
+          </td>
+          <td class="muted">{{ p.launch_date | fmtdate }}</td>
+          <td class="muted">{{ p.sale_count }}</td>
+          <td style="text-align:right">
+            <a href="{{ url_for('products.detail', id=p.id) }}" class="btn-sm-link">
+              {{ icon('eye', 15) }} View
+            </a>
+            <a href="{{ url_for('products.edit', id=p.id) }}" class="btn-sm-link">
+              {{ icon('pencil', 15) }} Edit
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              {{ icon('cube', 40) }}
+              <p>No products found.
+                {% if q or category or status %}Adjust your filters.{% endif %}
+              </p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {# Pagination #}
+  {% if total_pages > 1 %}
+  <div class="tcc-card-body">
+    <div class="tcc-pagination">
+      {% if page > 1 %}
+      <a href="?page={{ page-1 }}&q={{ q }}&category={{ category }}&status={{ status }}">&laquo; Prev</a>
+      {% else %}
+      <span class="disabled">&laquo; Prev</span>
+      {% endif %}
+      {% for p in range(1, total_pages+1) %}
+        {% if p == page %}
+        <span class="current">{{ p }}</span>
+        {% elif p <= 2 or p > total_pages-2 or (p >= page-2 and p <= page+2) %}
+        <a href="?page={{ p }}&q={{ q }}&category={{ category }}&status={{ status }}">{{ p }}</a>
+        {% elif p == 3 or p == total_pages-2 %}
+        <span class="disabled">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if page < total_pages %}
+      <a href="?page={{ page+1 }}&q={{ q }}&category={{ category }}&status={{ status }}">Next &raquo;</a>
+      {% else %}
+      <span class="disabled">Next &raquo;</span>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

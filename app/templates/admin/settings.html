@@ -1,0 +1,91 @@
+{% from 'partials/_icons.html' import icon %}
+{% extends 'base.html' %}
+
+{% block title %}Settings{% endblock %}
+{% block page_title %}System Settings{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Admin › Settings</li>{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+  {# Backup #}
+  <div class="col-12 col-md-5">
+    <div class="tcc-card">
+      <div class="tcc-card-header">{{ icon('shield', 18) }} <h3>Database Backup</h3></div>
+      <div class="tcc-card-body">
+        <p style="font-size:.875rem;color:var(--tcc-muted);margin-bottom:1.25rem">
+          Creates a timestamped copy of the SQLite database in
+          <code>instance/backups/</code>. The last 7 backups are retained automatically.
+          A nightly automatic backup runs at 02:00 server time.
+        </p>
+        <form method="POST" action="{{ url_for('admin.backup') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit" class="btn-navy">
+            {{ icon('download', 16) }} Back Up Now
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {# System info #}
+  <div class="col-12 col-md-7">
+    <div class="tcc-card">
+      <div class="tcc-card-header">{{ icon('info', 18) }} <h3>System Information</h3></div>
+      <div class="tcc-card-body">
+        <div class="detail-grid">
+          <div class="detail-field">
+            <span class="detail-label">Application</span>
+            <span class="detail-value">Teamsylla Command Center</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Version</span>
+            <span class="detail-value">V1.0</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Database</span>
+            <span class="detail-value">SQLite (single file)</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Port</span>
+            <span class="detail-value">5003</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Audit log #}
+  <div class="col-12">
+    <div class="tcc-card">
+      <div class="tcc-card-header">{{ icon('eye', 18) }} <h3>Recent Audit Log</h3></div>
+      <div class="tcc-table-wrap">
+        <table class="tcc-table">
+          <thead>
+            <tr><th>Time</th><th>User</th><th>Action</th><th>Entity</th><th>IP</th><th>Details</th></tr>
+          </thead>
+          <tbody>
+            {% for entry in audit %}
+            <tr>
+              <td class="muted" style="font-size:.75rem;white-space:nowrap">{{ entry.created_at[:16] if entry.created_at else '—' }}</td>
+              <td style="font-size:.8rem">{{ entry.full_name or 'System' }}</td>
+              <td>
+                <span style="font-size:.75rem;font-family:monospace;background:#f1f5f9;padding:.15rem .45rem;border-radius:.25rem">
+                  {{ entry.action }}
+                </span>
+              </td>
+              <td class="muted" style="font-size:.8rem">
+                {% if entry.entity_type %}{{ entry.entity_type }}{% if entry.entity_id %} #{{ entry.entity_id }}{% endif %}{% else %}—{% endif %}
+              </td>
+              <td class="muted" style="font-size:.75rem;font-family:monospace">{{ entry.ip_address or '—' }}</td>
+              <td class="muted" style="font-size:.8rem">{{ entry.details or '—' }}</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6"><div class="empty-state">{{ icon('info', 36) }}<p>No audit entries yet.</p></div></td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

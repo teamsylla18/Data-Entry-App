@@ -1,0 +1,96 @@
+{% from 'partials/_icons.html' import icon %}
+{% extends 'base.html' %}
+
+{% block title %}Clients{% endblock %}
+{% block page_title %}Client Management{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Clients</li>{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('clients.new') }}" class="btn-gold">
+  {{ icon('plus', 16) }} New Client
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="tcc-card">
+  <div class="tcc-card-body" style="border-bottom:1px solid var(--tcc-border);padding-bottom:1rem">
+    <form method="GET" class="filter-bar">
+      <input type="search" name="q" class="search-input"
+             placeholder="Search by name, organisation, or email…"
+             value="{{ q }}">
+      <button type="submit" class="btn-navy">Search</button>
+      {% if q %}
+      <a href="{{ url_for('clients.list') }}" class="btn-outline">Clear</a>
+      {% endif %}
+    </form>
+    <small class="text-muted">{{ total }} client{{ 's' if total != 1 }}</small>
+  </div>
+
+  <div class="tcc-table-wrap">
+    <table class="tcc-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Organisation</th>
+          <th>Country</th>
+          <th>Registered</th>
+          <th>Sales</th>
+          <th>Total Paid</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clients %}
+        <tr>
+          <td>
+            <a href="{{ url_for('clients.detail', id=c.id) }}"
+               style="font-weight:600;color:var(--tcc-navy);text-decoration:none">
+              {{ c.name }}
+            </a>
+            {% if c.phone %}
+            <div style="font-size:.75rem;color:var(--tcc-muted)">{{ c.phone }}</div>
+            {% endif %}
+          </td>
+          <td class="muted">{{ c.organization or '—' }}</td>
+          <td class="muted">{{ c.country or '—' }}</td>
+          <td class="muted">{{ c.date_registered | fmtdate }}</td>
+          <td class="muted">{{ c.sale_count }}</td>
+          <td class="amount">{{ c.total_paid | gnf }}</td>
+          <td style="text-align:right">
+            <a href="{{ url_for('clients.detail', id=c.id) }}" class="btn-sm-link">
+              {{ icon('eye', 15) }} View
+            </a>
+            <a href="{{ url_for('clients.edit', id=c.id) }}" class="btn-sm-link">
+              {{ icon('pencil', 15) }} Edit
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7">
+            <div class="empty-state">
+              {{ icon('users', 40) }}
+              <p>No clients found.{% if q %} Try a different search.{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total_pages > 1 %}
+  <div class="tcc-card-body">
+    <div class="tcc-pagination">
+      {% if page > 1 %}<a href="?page={{ page-1 }}&q={{ q }}">&laquo;</a>{% else %}<span class="disabled">&laquo;</span>{% endif %}
+      {% for p in range(1, total_pages+1) %}
+        {% if p == page %}<span class="current">{{ p }}</span>
+        {% elif p <= 2 or p > total_pages-2 or (p >= page-2 and p <= page+2) %}<a href="?page={{ p }}&q={{ q }}">{{ p }}</a>
+        {% elif p == 3 or p == total_pages-2 %}<span class="disabled">…</span>{% endif %}
+      {% endfor %}
+      {% if page < total_pages %}<a href="?page={{ page+1 }}&q={{ q }}">&raquo;</a>{% else %}<span class="disabled">&raquo;</span>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

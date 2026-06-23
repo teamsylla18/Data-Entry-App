@@ -1,0 +1,124 @@
+{% from 'partials/_icons.html' import icon %}
+{% extends 'base.html' %}
+
+{% block title %}Revenue Reports{% endblock %}
+{% block page_title %}Revenue Reports{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('sales.list') }}" style="color:var(--tcc-muted);text-decoration:none">Sales</a></li>
+<li class="breadcrumb-item active">Reports</li>
+{% endblock %}
+
+{% block content %}
+<div class="row g-3">
+
+  {# Monthly revenue chart #}
+  <div class="col-12 col-lg-7">
+    <div class="tcc-card">
+      <div class="tcc-card-header">{{ icon('chart-bar', 18) }} <h3>Monthly Revenue (Last 12 Months)</h3></div>
+      <div class="tcc-card-body">
+        <canvas id="monthlyChart" height="280"></canvas>
+      </div>
+    </div>
+  </div>
+
+  {# Outstanding by client #}
+  <div class="col-12 col-lg-5">
+    <div class="tcc-card">
+      <div class="tcc-card-header">{{ icon('currency', 18) }} <h3>Outstanding Balances</h3></div>
+      <div class="tcc-card-body" style="padding:0">
+        <div class="tcc-table-wrap">
+          <table class="tcc-table">
+            <thead>
+              <tr><th>Client</th><th>Due</th><th>Outstanding</th></tr>
+            </thead>
+            <tbody>
+              {% for row in outstanding %}
+              {% set bal = row.total_due - row.total_paid %}
+              <tr>
+                <td style="font-weight:500">{{ row.client_name }}</td>
+                <td class="amount" style="font-size:.8rem">{{ row.total_due | gnf }}</td>
+                <td class="balance-positive">{{ bal | gnf }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="3"><div class="empty-state p-0" style="padding:1.5rem!important">{{ icon('check', 28) }}<p>No outstanding balances.</p></div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Per-product revenue #}
+  <div class="col-12">
+    <div class="tcc-card">
+      <div class="tcc-card-header">{{ icon('cube', 18) }} <h3>Revenue by Product</h3></div>
+      <div class="tcc-card-body" style="padding:0">
+        <div class="tcc-table-wrap">
+          <table class="tcc-table">
+            <thead>
+              <tr><th>Product</th><th>Sales Count</th><th>Revenue Collected</th></tr>
+            </thead>
+            <tbody>
+              {% for row in by_product %}
+              <tr>
+                <td style="font-weight:500">{{ row.name }}</td>
+                <td class="muted">{{ row.sale_count }}</td>
+                <td class="amount" style="color:#059669">{{ row.revenue | gnf }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="3"><div class="empty-state">{{ icon('cube', 28) }}<p>No sales recorded yet.</p></div></td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+  const labels = {{ monthly | map(attribute='month') | list | tojson }};
+  const data   = {{ monthly | map(attribute='revenue') | list | tojson }};
+  const ctx = document.getElementById('monthlyChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Revenue (GNF)',
+        data,
+        backgroundColor: 'rgba(245,158,11,0.75)',
+        borderColor: '#f59e0b',
+        borderWidth: 2,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => 'GNF ' + ctx.parsed.y.toLocaleString()
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: v => 'GNF ' + v.toLocaleString()
+          }
+        }
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

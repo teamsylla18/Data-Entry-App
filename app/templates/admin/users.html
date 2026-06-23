@@ -1,0 +1,144 @@
+{% from 'partials/_icons.html' import icon %}
+{% extends 'base.html' %}
+
+{% block title %}User Management{% endblock %}
+{% block page_title %}User Management{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Admin › Users</li>{% endblock %}
+
+{% block topbar_actions %}
+<button type="button" class="btn-gold" onclick="openConfirmModal('modal-new-user')">
+  {{ icon('plus', 16) }} New User
+</button>
+{% endblock %}
+
+{% block content %}
+
+{# New user modal #}
+<div id="modal-new-user" class="tcc-modal-backdrop" style="display:none">
+  <div class="tcc-modal" style="width:520px" onclick="event.stopPropagation()">
+    <div class="tcc-modal-header">
+      {{ icon('users', 18) }}
+      <h3>Create Staff Account</h3>
+      <button class="modal-close" onclick="closeConfirmModal('modal-new-user')">&times;</button>
+    </div>
+    <form method="POST" action="{{ url_for('admin.new_user') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="tcc-modal-body">
+        <div class="tcc-form-row">
+          <div class="tcc-form-group">
+            <label>Full Name <span class="req">*</span></label>
+            <input type="text" name="full_name" class="tcc-input" required>
+          </div>
+          <div class="tcc-form-group">
+            <label>Email <span class="req">*</span></label>
+            <input type="email" name="email" class="tcc-input" required>
+          </div>
+        </div>
+        <div class="tcc-form-group">
+          <label>Role <span class="req">*</span></label>
+          <select name="role" class="tcc-select" required>
+            <option value="">Select role…</option>
+            {% for val, label in roles %}
+            <option value="{{ val }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="tcc-form-row">
+          <div class="tcc-form-group">
+            <label>Login Password <span class="req">*</span></label>
+            <input type="password" name="password" class="tcc-input"
+                   minlength="8" required autocomplete="new-password"
+                   placeholder="Min. 8 characters">
+          </div>
+          <div class="tcc-form-group">
+            <label>Manager Password <span class="req">*</span></label>
+            <input type="password" name="manager_password" class="tcc-input"
+                   minlength="6" required autocomplete="new-password"
+                   placeholder="Min. 6 characters">
+            <span class="form-hint">Used for sensitive confirmations.</span>
+          </div>
+        </div>
+      </div>
+      <div class="tcc-modal-footer">
+        <button type="button" class="btn-outline" onclick="closeConfirmModal('modal-new-user')">Cancel</button>
+        <button type="submit" class="btn-gold">{{ icon('check', 15) }} Create Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="tcc-card">
+  <div class="tcc-table-wrap">
+    <table class="tcc-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Email</th>
+          <th>Role</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td style="font-weight:500">{{ u.full_name }}</td>
+          <td class="muted">{{ u.email }}</td>
+          <td>
+            <span class="badge-status badge-{{ 'active' if u.role == 'super_admin' else 'inactive' }}"
+                  style="background:#eff6ff;color:#1e40af">
+              {{ u.role | replace('_',' ') | title }}
+            </span>
+          </td>
+          <td>
+            <span class="badge-status badge-{{ u.status }}">{{ u.status | title }}</span>
+          </td>
+          <td class="muted">{{ u.created_at[:10] if u.created_at else '—' }}</td>
+          <td style="text-align:right">
+            <form method="POST" action="{{ url_for('admin.toggle_status', id=u.id) }}"
+                  style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit"
+                      class="{{ 'btn-danger-sm' if u.status == 'active' else 'btn-sm-success' }}">
+                {{ 'Deactivate' if u.status == 'active' else 'Activate' }}
+              </button>
+            </form>
+            <button type="button" class="btn-sm-link"
+                    onclick="openConfirmModal('modal-reset-{{ u.id }}')">
+              {{ icon('cog', 14) }} Reset PW
+            </button>
+          </td>
+        </tr>
+        {# Reset password modal per user #}
+        <div id="modal-reset-{{ u.id }}" class="tcc-modal-backdrop" style="display:none">
+          <div class="tcc-modal" onclick="event.stopPropagation()">
+            <div class="tcc-modal-header">
+              {{ icon('cog', 18) }} <h3>Reset Password — {{ u.full_name }}</h3>
+              <button class="modal-close" onclick="closeConfirmModal('modal-reset-{{ u.id }}')">&times;</button>
+            </div>
+            <form method="POST" action="{{ url_for('admin.reset_password', id=u.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="tcc-modal-body">
+                <div class="tcc-form-group" style="margin-bottom:0">
+                  <label>New Password <span class="req">*</span></label>
+                  <input type="password" name="new_password" class="tcc-input"
+                         minlength="8" required placeholder="Min. 8 characters">
+                </div>
+              </div>
+              <div class="tcc-modal-footer">
+                <button type="button" class="btn-outline"
+                        onclick="closeConfirmModal('modal-reset-{{ u.id }}')">Cancel</button>
+                <button type="submit" class="btn-gold">Reset</button>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% else %}
+        <tr><td colspan="6"><div class="empty-state">{{ icon('users', 36) }}<p>No users yet.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

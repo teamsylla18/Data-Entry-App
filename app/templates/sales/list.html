@@ -1,0 +1,144 @@
+{% from 'partials/_icons.html' import icon %}
+{% extends 'base.html' %}
+
+{% block title %}Sales{% endblock %}
+{% block page_title %}Sales & Revenue{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Sales</li>{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('sales.reports') }}" class="btn-outline">
+  {{ icon('chart-bar', 15) }} Reports
+</a>
+<a href="{{ url_for('sales.new') }}" class="btn-gold">
+  {{ icon('plus', 16) }} Record Sale
+</a>
+{% endblock %}
+
+{% block content %}
+
+{# Summary totals #}
+{% set outstanding = [totals.total_due - totals.total_paid, 0] | max %}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Sales</div>
+      <div class="stat-value">{{ total }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Total Due</div>
+      <div class="stat-value" style="font-size:1rem">{{ (totals.total_due or 0) | gnf }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Total Collected</div>
+      <div class="stat-value" style="font-size:1rem;color:#059669">{{ (totals.total_paid or 0) | gnf }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Outstanding</div>
+      <div class="stat-value" style="font-size:1rem;color:{{ '#dc2626' if outstanding > 0 else '#059669' }}">
+        {{ outstanding | gnf }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tcc-card">
+  {# Filters #}
+  <div class="tcc-card-body" style="border-bottom:1px solid var(--tcc-border);padding-bottom:1rem">
+    <form method="GET" class="filter-bar">
+      <input type="search" name="q" class="search-input" placeholder="Search client or product…" value="{{ q }}">
+      <select name="product_id">
+        <option value="">All Products</option>
+        {% for p in products %}
+        <option value="{{ p.id }}" {{ 'selected' if product_id == p.id|string }}>{{ p.name }}</option>
+        {% endfor %}
+      </select>
+      <select name="client_id">
+        <option value="">All Clients</option>
+        {% for c in clients %}
+        <option value="{{ c.id }}" {{ 'selected' if client_id == c.id|string }}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+      <input type="date" name="date_from" class="search-input" style="flex:0;width:140px"
+             value="{{ date_from }}" placeholder="From">
+      <input type="date" name="date_to" class="search-input" style="flex:0;width:140px"
+             value="{{ date_to }}" placeholder="To">
+      <button type="submit" class="btn-navy">Filter</button>
+      {% if q or product_id or client_id or date_from or date_to %}
+      <a href="{{ url_for('sales.list') }}" class="btn-outline">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="tcc-table-wrap">
+    <table class="tcc-table">
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th>Product</th>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Discount</th>
+          <th>Paid</th>
+          <th>Balance</th>
+          <th>Method</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in sales %}
+        {% set balance = s.sale_amount - (s.discount or 0) - s.amount_paid %}
+        <tr>
+          <td>
+            <a href="{{ url_for('clients.detail', id=s.client_id) }}"
+               style="font-weight:600;color:var(--tcc-navy);text-decoration:none">
+              {{ s.client_name }}
+            </a>
+          </td>
+          <td class="muted">{{ s.product_name }}</td>
+          <td class="muted">{{ s.sale_date | fmtdate }}</td>
+          <td class="amount">{{ s.sale_amount | gnf }}</td>
+          <td class="muted">{{ s.discount | gnf if s.discount else '—' }}</td>
+          <td class="amount" style="color:#059669">{{ s.amount_paid | gnf }}</td>
+          <td class="{{ 'balance-positive' if balance > 0 else 'balance-zero' }}">{{ balance | gnf }}</td>
+          <td class="muted">{{ s.payment_method | replace('_',' ') | title }}</td>
+          <td style="text-align:right">
+            <a href="{{ url_for('sales.detail', id=s.id) }}" class="btn-sm-link">
+              {{ icon('eye', 15) }} View
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="9">
+            <div class="empty-state">
+              {{ icon('chart-bar', 40) }}
+              <p>No sales found.{% if q or product_id or client_id %} Adjust your filters.{% endif %}</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total_pages > 1 %}
+  <div class="tcc-card-body">
+    <div class="tcc-pagination">
+      {% if page > 1 %}<a href="?page={{ page-1 }}&q={{ q }}&product_id={{ product_id }}&client_id={{ client_id }}&date_from={{ date_from }}&date_to={{ date_to }}">&laquo;</a>{% else %}<span class="disabled">&laquo;</span>{% endif %}
+      {% for p in range(1, total_pages+1) %}
+        {% if p == page %}<span class="current">{{ p }}</span>
+        {% elif p <= 2 or p > total_pages-2 or (p >= page-2 and p <= page+2) %}<a href="?page={{ p }}&q={{ q }}&product_id={{ product_id }}&client_id={{ client_id }}&date_from={{ date_from }}&date_to={{ date_to }}">{{ p }}</a>
+        {% elif p == 3 or p == total_pages-2 %}<span class="disabled">…</span>{% endif %}
+      {% endfor %}
+      {% if page < total_pages %}<a href="?page={{ page+1 }}&q={{ q }}&product_id={{ product_id }}&client_id={{ client_id }}&date_from={{ date_from }}&date_to={{ date_to }}">&raquo;</a>{% else %}<span class="disabled">&raquo;</span>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,179 @@
+{% from 'partials/_icons.html' import icon %}
+{% from 'partials/_manager_modal.html' import manager_modal %}
+{% extends 'base.html' %}
+
+{% block title %}{{ client.name }}{% endblock %}
+{% block page_title %}{{ client.name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('clients.list') }}" style="color:var(--tcc-muted);text-decoration:none">Clients</a></li>
+<li class="breadcrumb-item active">{{ client.name }}</li>
+{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('clients.edit', id=client.id) }}" class="btn-outline">
+  {{ icon('pencil', 15) }} Edit
+</a>
+<button type="button" class="btn-danger-sm"
+        onclick="openConfirmModal('modal-delete')">
+  {{ icon('trash', 15) }} Delete
+</button>
+{% endblock %}
+
+{% block content %}
+{{ manager_modal('modal-delete', 'Delete Client',
+    'This will soft-delete <strong>' ~ client.name ~ '</strong>.',
+    url_for('clients.delete', id=client.id),
+    btn_text='Delete Client') }}
+
+{# ── Summary cards ───────────────────────────────────────────────────── #}
+<div class="row g-3 mb-3">
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Total Sales</div>
+      <div class="stat-value">{{ sales | length }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Total Due</div>
+      <div class="stat-value" style="font-size:1rem">{{ total_due | gnf }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Total Paid</div>
+      <div class="stat-value" style="font-size:1rem;color:#059669">{{ total_paid | gnf }}</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="stat-card">
+      <div class="stat-label">Outstanding</div>
+      <div class="stat-value" style="font-size:1rem;color:{{ '#dc2626' if outstanding > 0 else '#059669' }}">
+        {{ outstanding | gnf }}
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Profile + tabs ───────────────────────────────────────────────────── #}
+<div class="row g-3">
+  <div class="col-12 col-md-4">
+    <div class="tcc-card">
+      <div class="tcc-card-header">{{ icon('users', 18) }} <h3>Profile</h3></div>
+      <div class="tcc-card-body">
+        <div style="display:flex;flex-direction:column;gap:.9rem">
+          <div class="detail-field">
+            <span class="detail-label">Organisation</span>
+            <span class="detail-value">{{ client.organization or '—' }}</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Phone</span>
+            <span class="detail-value">{{ client.phone or '—' }}</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Email</span>
+            <span class="detail-value">{{ client.email or '—' }}</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Country</span>
+            <span class="detail-value">{{ client.country or '—' }}</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Address</span>
+            <span class="detail-value">{{ client.address or '—' }}</span>
+          </div>
+          <div class="detail-field">
+            <span class="detail-label">Registered</span>
+            <span class="detail-value">{{ client.date_registered | fmtdate }}</span>
+          </div>
+          {% if client.contract_info %}
+          <div class="detail-field">
+            <span class="detail-label">Contract</span>
+            <span class="detail-value" style="font-size:.85rem">{{ client.contract_info }}</span>
+          </div>
+          {% endif %}
+          {% if client.notes %}
+          <div class="detail-field">
+            <span class="detail-label">Notes</span>
+            <span class="detail-value" style="font-size:.85rem;color:var(--tcc-muted)">{{ client.notes }}</span>
+          </div>
+          {% endif %}
+        </div>
+        <div style="margin-top:1.25rem">
+          <a href="{{ url_for('sales.new') }}?client_id={{ client.id }}" class="btn-gold" style="width:100%;justify-content:center">
+            {{ icon('chart-bar', 16) }} Record Sale
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-8">
+    <div class="tcc-card" data-tabs>
+      <div class="tcc-card-header" style="padding-bottom:0;border-bottom:none">
+        <div class="tcc-tabs" style="width:100%">
+          <button class="tab-btn active" data-tab="sales">Sales ({{ sales | length }})</button>
+          <button class="tab-btn" data-tab="receipts">Receipts ({{ receipts | length }})</button>
+        </div>
+      </div>
+      <div class="tcc-card-body">
+
+        {# Sales tab #}
+        <div id="tab-sales" class="tab-panel active">
+          {% if sales %}
+          <div class="tcc-table-wrap">
+            <table class="tcc-table">
+              <thead>
+                <tr><th>Product</th><th>Date</th><th>Amount</th><th>Paid</th><th>Balance</th><th></th></tr>
+              </thead>
+              <tbody>
+                {% for s in sales %}
+                {% set bal = s.sale_amount - (s.discount or 0) - s.amount_paid %}
+                <tr>
+                  <td>{{ s.product_name }}</td>
+                  <td class="muted">{{ s.sale_date | fmtdate }}</td>
+                  <td class="amount">{{ s.sale_amount | gnf }}</td>
+                  <td class="amount">{{ s.amount_paid | gnf }}</td>
+                  <td class="{{ 'balance-positive' if bal > 0 else 'balance-zero' }}">{{ bal | gnf }}</td>
+                  <td><a href="{{ url_for('sales.detail', id=s.id) }}" class="btn-sm-link">{{ icon('eye', 14) }} View</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">{{ icon('chart-bar', 36) }}<p>No sales yet.</p></div>
+          {% endif %}
+        </div>
+
+        {# Receipts tab #}
+        <div id="tab-receipts" class="tab-panel">
+          {% if receipts %}
+          <div class="tcc-table-wrap">
+            <table class="tcc-table">
+              <thead>
+                <tr><th>Receipt #</th><th>Date</th><th>Amount</th><th></th></tr>
+              </thead>
+              <tbody>
+                {% for r in receipts %}
+                <tr>
+                  <td><strong>{{ r.receipt_number }}</strong></td>
+                  <td class="muted">{{ r.issue_date | fmtdate }}</td>
+                  <td class="amount">{{ r.amount | gnf }}</td>
+                  <td><a href="{{ url_for('receipts.view', id=r.id) }}" class="btn-sm-link">{{ icon('eye', 14) }} View</a></td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">{{ icon('receipt', 36) }}<p>No receipts issued yet.</p></div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

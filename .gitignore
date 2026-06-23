@@ -1,0 +1,16 @@
+instance/
+uploads/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+.venv
+venv/
+*.egg-info/
+dist/
+build/
+.DS_Store
+*.swp
+*.swo
+node_modules/

@@ -1,0 +1,59 @@
+{#
+  Reusable manager-password confirmation modal.
+  Parameters:
+    modal_id     – unique HTML id for this modal
+    title        – modal heading text
+    message      – confirmation message (HTML-safe string)
+    action_url   – form action URL
+    btn_text     – submit button label
+    btn_danger   – if true, button gets red style (default true)
+    extra_fields – optional dict of {name: value} hidden inputs
+#}
+{% macro manager_modal(modal_id, title, message, action_url,
+                       btn_text='Confirm', btn_danger=true,
+                       extra_fields={}) %}
+<div id="{{ modal_id }}" class="tcc-modal-backdrop" style="display:none"
+     role="dialog" aria-modal="true" aria-labelledby="{{ modal_id }}-title">
+  <div class="tcc-modal" onclick="event.stopPropagation()">
+    <div class="tcc-modal-header">
+      {% if btn_danger %}
+      <span style="color:#dc2626">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+          <path stroke-linecap="round" stroke-linejoin="round"
+                d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+        </svg>
+      </span>
+      {% endif %}
+      <h3 id="{{ modal_id }}-title">{{ title }}</h3>
+      <button type="button" class="modal-close"
+              onclick="closeConfirmModal('{{ modal_id }}')"
+              aria-label="Close">&times;</button>
+    </div>
+    <form method="POST" action="{{ action_url }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% for name, value in extra_fields.items() %}
+      <input type="hidden" name="{{ name }}" value="{{ value }}">
+      {% endfor %}
+      <div class="tcc-modal-body">
+        <p style="margin-bottom:1rem;font-size:.9rem;color:#374151">{{ message | safe }}</p>
+        <div class="tcc-form-group" style="margin-bottom:0">
+          <label for="{{ modal_id }}-pw">Manager Password <span class="req">*</span></label>
+          <input type="password" id="{{ modal_id }}-pw" name="manager_password"
+                 class="tcc-input" placeholder="Enter your manager password"
+                 required autocomplete="off">
+        </div>
+      </div>
+      <div class="tcc-modal-footer">
+        <button type="button" class="btn-outline"
+                onclick="closeConfirmModal('{{ modal_id }}')">Cancel</button>
+        <button type="submit"
+                class="{{ 'btn-danger-sm' if btn_danger else 'btn-sm-success' }}"
+                style="padding:.5rem 1.1rem;font-size:.875rem">
+          {{ btn_text }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endmacro %}

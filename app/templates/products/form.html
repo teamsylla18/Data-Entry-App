@@ -1,0 +1,108 @@
+{% from 'partials/_icons.html' import icon %}
+{% extends 'base.html' %}
+
+{% set is_edit = (action == 'edit') %}
+{% block title %}{{ 'Edit' if is_edit else 'New' }} Product{% endblock %}
+{% block page_title %}{{ 'Edit Product' if is_edit else 'Register New Product' }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('products.list') }}" style="color:var(--tcc-muted);text-decoration:none">Products</a></li>
+<li class="breadcrumb-item active">{{ 'Edit' if is_edit else 'New' }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="tcc-card" style="max-width:800px">
+  <div class="tcc-card-header">
+    {{ icon('cube', 18) }}
+    <h2>{{ 'Edit Product' if is_edit else 'Register New Product' }}</h2>
+  </div>
+  <div class="tcc-card-body">
+    <form method="POST"
+          action="{{ url_for('products.edit', id=id) if is_edit else url_for('products.new') }}"
+          novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="tcc-form-row">
+        <div class="tcc-form-group" style="grid-column:1/-1">
+          <label for="name">Product Name <span class="req">*</span></label>
+          <input type="text" id="name" name="name" class="tcc-input"
+                 value="{{ product.name or '' }}" required maxlength="200"
+                 placeholder="e.g. Smart Fee Management System">
+        </div>
+      </div>
+
+      <div class="tcc-form-row">
+        <div class="tcc-form-group">
+          <label for="category">Category <span class="req">*</span></label>
+          <select id="category" name="category" class="tcc-select" required>
+            <option value="">Select category…</option>
+            {% for val, label in categories %}
+            <option value="{{ val }}" {{ 'selected' if product.category == val }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="tcc-form-group">
+          <label for="status">Status</label>
+          <select id="status" name="status" class="tcc-select">
+            {% for val, label in statuses %}
+            <option value="{{ val }}" {{ 'selected' if (product.status or 'active') == val }}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="tcc-form-group">
+          <label for="current_version">Current Version</label>
+          <input type="text" id="current_version" name="current_version" class="tcc-input"
+                 value="{{ product.current_version or '' }}" placeholder="e.g. 2.0.1">
+        </div>
+      </div>
+
+      <div class="tcc-form-row">
+        <div class="tcc-form-group">
+          <label for="date_created">Date Created</label>
+          <input type="date" id="date_created" name="date_created" class="tcc-input"
+                 value="{{ product.date_created or '' }}">
+        </div>
+        <div class="tcc-form-group">
+          <label for="launch_date">Launch Date</label>
+          <input type="date" id="launch_date" name="launch_date" class="tcc-input"
+                 value="{{ product.launch_date or '' }}">
+        </div>
+      </div>
+
+      <div class="tcc-form-group">
+        <label for="description">Description</label>
+        <textarea id="description" name="description" class="tcc-textarea"
+                  placeholder="Describe what this product does…">{{ product.description or '' }}</textarea>
+      </div>
+
+      <div class="tcc-form-row">
+        <div class="tcc-form-group">
+          <label for="tech_stack">Technology Stack</label>
+          <input type="text" id="tech_stack" name="tech_stack" class="tcc-input"
+                 value="{{ product.tech_stack or '' }}" placeholder="e.g. PHP, MySQL, Bootstrap">
+        </div>
+        <div class="tcc-form-group">
+          <label for="license_number">License Number</label>
+          <input type="text" id="license_number" name="license_number" class="tcc-input"
+                 value="{{ product.license_number or '' }}" placeholder="e.g. TCC-LIC-001">
+        </div>
+      </div>
+
+      <div class="tcc-form-group">
+        <label for="support_contact">Support Contact</label>
+        <input type="text" id="support_contact" name="support_contact" class="tcc-input"
+               value="{{ product.support_contact or '' }}"
+               placeholder="e.g. support@teamsylla.com or +224 xxx xxx">
+      </div>
+
+      <div style="display:flex;gap:.75rem;margin-top:1.5rem">
+        <button type="submit" class="btn-gold">
+          {{ icon('check', 16) }} {{ 'Save Changes' if is_edit else 'Register Product' }}
+        </button>
+        <a href="{{ url_for('products.detail', id=id) if is_edit else url_for('products.list') }}"
+           class="btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

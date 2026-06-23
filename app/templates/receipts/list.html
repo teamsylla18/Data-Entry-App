@@ -1,0 +1,90 @@
+{% from 'partials/_icons.html' import icon %}
+{% extends 'base.html' %}
+
+{% block title %}Receipts{% endblock %}
+{% block page_title %}Receipts{% endblock %}
+{% block breadcrumb %}<li class="breadcrumb-item active">Receipts</li>{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('sales.list') }}" class="btn-outline">
+  {{ icon('chart-bar', 15) }} View Sales
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="tcc-card">
+  <div class="tcc-card-body" style="border-bottom:1px solid var(--tcc-border);padding-bottom:1rem">
+    <form method="GET" class="filter-bar">
+      <input type="search" name="q" class="search-input"
+             placeholder="Search by receipt number or client…" value="{{ q }}">
+      <button type="submit" class="btn-navy">Search</button>
+      {% if q %}<a href="{{ url_for('receipts.list') }}" class="btn-outline">Clear</a>{% endif %}
+    </form>
+    <small class="text-muted">{{ total }} receipt{{ 's' if total != 1 }}</small>
+  </div>
+
+  <div class="tcc-table-wrap">
+    <table class="tcc-table">
+      <thead>
+        <tr>
+          <th>Receipt #</th>
+          <th>Client</th>
+          <th>Product</th>
+          <th>Issue Date</th>
+          <th>Amount</th>
+          <th style="text-align:right">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in receipts %}
+        <tr>
+          <td>
+            <a href="{{ url_for('receipts.view', id=r.id) }}"
+               style="font-weight:700;color:var(--tcc-navy);text-decoration:none;font-family:monospace">
+              {{ r.receipt_number }}
+            </a>
+          </td>
+          <td>{{ r.client_name }}</td>
+          <td class="muted">{{ r.product_name }}</td>
+          <td class="muted">{{ r.issue_date | fmtdate }}</td>
+          <td class="amount">{{ r.amount | gnf }}</td>
+          <td style="text-align:right">
+            <a href="{{ url_for('receipts.view', id=r.id) }}" class="btn-sm-link">
+              {{ icon('eye', 15) }} View
+            </a>
+            {% if r.pdf_path %}
+            <a href="{{ url_for('receipts.download_pdf', id=r.id) }}" class="btn-sm-link">
+              {{ icon('download', 15) }} PDF
+            </a>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              {{ icon('receipt', 40) }}
+              <p>No receipts found.</p>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total_pages > 1 %}
+  <div class="tcc-card-body">
+    <div class="tcc-pagination">
+      {% if page > 1 %}<a href="?page={{ page-1 }}&q={{ q }}">&laquo;</a>{% else %}<span class="disabled">&laquo;</span>{% endif %}
+      {% for p in range(1, total_pages+1) %}
+        {% if p == page %}<span class="current">{{ p }}</span>
+        {% elif p <= 2 or p > total_pages-2 or (p >= page-2 and p <= page+2) %}<a href="?page={{ p }}&q={{ q }}">{{ p }}</a>
+        {% elif p == 3 or p == total_pages-2 %}<span class="disabled">…</span>{% endif %}
+      {% endfor %}
+      {% if page < total_pages %}<a href="?page={{ page+1 }}&q={{ q }}">&raquo;</a>{% else %}<span class="disabled">&raquo;</span>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

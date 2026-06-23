@@ -1,0 +1,234 @@
+{% from 'partials/_icons.html' import icon %}
+{% from 'partials/_manager_modal.html' import manager_modal %}
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }}{% endblock %}
+{% block page_title %}{{ product.name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('products.list') }}" style="color:var(--tcc-muted);text-decoration:none">Products</a></li>
+<li class="breadcrumb-item active">{{ product.name }}</li>
+{% endblock %}
+
+{% block topbar_actions %}
+<a href="{{ url_for('products.edit', id=product.id) }}" class="btn-outline">
+  {{ icon('pencil', 15) }} Edit
+</a>
+<button type="button" class="btn-danger-sm"
+        onclick="openConfirmModal('modal-delete')">
+  {{ icon('trash', 15) }} Delete
+</button>
+{% endblock %}
+
+{% block content %}
+{# Delete modal #}
+{{ manager_modal(
+    'modal-delete',
+    'Delete Product',
+    'This will soft-delete <strong>' ~ product.name ~ '</strong>. The record can be recovered by a Super Admin.',
+    url_for('products.delete', id=product.id),
+    btn_text='Delete Product',
+    btn_danger=true
+) }}
+
+{# ── Product info card ──────────────────────────────────────────────── #}
+<div class="tcc-card mb-3">
+  <div class="tcc-card-body">
+    <div class="d-flex align-center gap-2 mb-3">
+      <span class="badge-status badge-{{ product.status }}">{{ product.status | replace('_',' ') | title }}</span>
+      <span style="font-size:.8rem;color:var(--tcc-muted)">{{ product.category | replace('_',' ') | title }}</span>
+    </div>
+    {% if product.description %}
+    <p style="color:var(--tcc-muted);font-size:.9rem;margin-bottom:1.25rem">{{ product.description }}</p>
+    {% endif %}
+    <div class="detail-grid">
+      <div class="detail-field">
+        <span class="detail-label">Current Version</span>
+        <span class="detail-value">{{ product.current_version or '—' }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Date Created</span>
+        <span class="detail-value">{{ product.date_created | fmtdate }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Launch Date</span>
+        <span class="detail-value">{{ product.launch_date | fmtdate }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Tech Stack</span>
+        <span class="detail-value">{{ product.tech_stack or '—' }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">License Number</span>
+        <span class="detail-value">{{ product.license_number or '—' }}</span>
+      </div>
+      <div class="detail-field">
+        <span class="detail-label">Support Contact</span>
+        <span class="detail-value">{{ product.support_contact or '—' }}</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Tabs ────────────────────────────────────────────────────────────────── #}
+<div class="tcc-card" data-tabs>
+  <div class="tcc-card-header" style="padding-bottom:0;border-bottom:none">
+    <div class="tcc-tabs" style="width:100%">
+      <button class="tab-btn {{ 'active' if request.args.get('tab','versions')=='versions' }}"
+              data-tab="versions">
+        Version History ({{ versions | length }})
+      </button>
+      <button class="tab-btn {{ 'active' if request.args.get('tab')=='sales' }}"
+              data-tab="sales">
+        Sales ({{ sales | length }})
+      </button>
+    </div>
+  </div>
+  <div class="tcc-card-body">
+
+    {# ── Version History tab ── #}
+    <div id="tab-versions" class="tab-panel {{ 'active' if request.args.get('tab','versions')=='versions' }}">
+      {# Add version form #}
+      <details style="margin-bottom:1.25rem">
+        <summary class="btn-gold" style="cursor:pointer;list-style:none;display:inline-flex">
+          {{ icon('plus', 15) }} Add Version
+        </summary>
+        <div class="tcc-card mt-3" style="max-width:600px">
+          <div class="tcc-card-body">
+            <form method="POST" action="{{ url_for('products.add_version', id=product.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <div class="tcc-form-row">
+                <div class="tcc-form-group">
+                  <label>Version Number <span class="req">*</span></label>
+                  <input type="text" name="version_number" class="tcc-input"
+                         placeholder="e.g. 2.1.0" required>
+                </div>
+                <div class="tcc-form-group">
+                  <label>Release Date</label>
+                  <input type="date" name="release_date" class="tcc-input">
+                </div>
+              </div>
+              <div class="tcc-form-group">
+                <label>Changelog</label>
+                <textarea name="changelog" class="tcc-textarea" rows="3"
+                          placeholder="Summary of changes…"></textarea>
+              </div>
+              <div class="tcc-form-row">
+                <div class="tcc-form-group">
+                  <label>Bug Fixes</label>
+                  <textarea name="bug_fixes" class="tcc-textarea" rows="2"
+                            placeholder="Fixed issues…"></textarea>
+                </div>
+                <div class="tcc-form-group">
+                  <label>New Features</label>
+                  <textarea name="new_features" class="tcc-textarea" rows="2"
+                            placeholder="New functionality…"></textarea>
+                </div>
+              </div>
+              <div class="tcc-form-group">
+                <label>Developer Notes</label>
+                <textarea name="developer_notes" class="tcc-textarea" rows="2"
+                          placeholder="Internal notes…"></textarea>
+              </div>
+              <button type="submit" class="btn-gold">{{ icon('check', 15) }} Save Version</button>
+            </form>
+          </div>
+        </div>
+      </details>
+
+      {% if versions %}
+      <div class="tcc-table-wrap">
+        <table class="tcc-table">
+          <thead>
+            <tr>
+              <th>Version</th>
+              <th>Release Date</th>
+              <th>Changelog</th>
+              <th>Bug Fixes</th>
+              <th>New Features</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in versions %}
+            <tr>
+              <td><strong>{{ v.version_number }}</strong></td>
+              <td class="muted">{{ v.release_date | fmtdate }}</td>
+              <td class="muted">{{ v.changelog or '—' }}</td>
+              <td class="muted">{{ v.bug_fixes or '—' }}</td>
+              <td class="muted">{{ v.new_features or '—' }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        {{ icon('cube', 36) }}
+        <p>No versions recorded yet. Add the first one above.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    {# ── Sales tab ── #}
+    <div id="tab-sales" class="tab-panel {{ 'active' if request.args.get('tab')=='sales' }}">
+      {% if sales %}
+      <div class="tcc-table-wrap">
+        <table class="tcc-table">
+          <thead>
+            <tr>
+              <th>Client</th>
+              <th>Sale Date</th>
+              <th>Amount</th>
+              <th>Discount</th>
+              <th>Paid</th>
+              <th>Balance</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in sales %}
+            {% set balance = s.sale_amount - (s.discount or 0) - s.amount_paid %}
+            <tr>
+              <td>{{ s.client_name }}</td>
+              <td class="muted">{{ s.sale_date | fmtdate }}</td>
+              <td class="amount">{{ s.sale_amount | gnf }}</td>
+              <td class="muted">{{ s.discount | gnf if s.discount else '—' }}</td>
+              <td class="amount">{{ s.amount_paid | gnf }}</td>
+              <td class="{{ 'balance-positive' if balance > 0 else 'balance-zero' }}">
+                {{ balance | gnf }}
+              </td>
+              <td>
+                <a href="{{ url_for('sales.detail', id=s.id) }}" class="btn-sm-link">
+                  {{ icon('eye', 15) }} View
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        {{ icon('chart-bar', 36) }}
+        <p>No sales recorded for this product yet.</p>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Open correct tab from URL param
+document.addEventListener('DOMContentLoaded', () => {
+  const tab = new URLSearchParams(window.location.search).get('tab');
+  if (tab) {
+    const btn = document.querySelector(`.tab-btn[data-tab="${tab}"]`);
+    if (btn) btn.click();
+  }
+});
+</script>
+{% endblock %}
