@@ -1,0 +1,83 @@
+{% from 'partials/_icons.html' import icon %}
+{% extends 'base.html' %}
+
+{% block title %}Generate Receipt{% endblock %}
+{% block page_title %}Generate Receipt{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('receipts.list') }}" style="color:var(--tcc-muted);text-decoration:none">Receipts</a></li>
+<li class="breadcrumb-item active">Generate</li>
+{% endblock %}
+
+{% block content %}
+<div class="tcc-card" style="max-width:600px">
+  <div class="tcc-card-header">
+    {{ icon('receipt', 18) }}
+    <h2>Generate Receipt</h2>
+  </div>
+  <div class="tcc-card-body">
+
+    {# Sale summary #}
+    <div style="background:#f8fafc;border-radius:.5rem;padding:1rem;margin-bottom:1.5rem">
+      <div class="detail-grid" style="margin-bottom:0">
+        <div class="detail-field">
+          <span class="detail-label">Client</span>
+          <span class="detail-value">{{ sale.client_name }}</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">Product</span>
+          <span class="detail-value">{{ sale.product_name }}</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">Sale Amount</span>
+          <span class="detail-value">{{ sale.sale_amount | gnf }}</span>
+        </div>
+        <div class="detail-field">
+          <span class="detail-label">Total Paid</span>
+          <span class="detail-value" style="color:#059669">{{ amount_paid | gnf }}</span>
+        </div>
+      </div>
+    </div>
+
+    {% if payments %}
+    <div style="margin-bottom:1.25rem">
+      <div style="font-size:.8rem;font-weight:600;color:var(--tcc-muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:.5rem">
+        Payment History
+      </div>
+      {% for p in payments %}
+      <div style="display:flex;justify-content:space-between;font-size:.85rem;padding:.35rem 0;border-bottom:1px solid var(--tcc-border)">
+        <span>{{ p.payment_date | fmtdate }} · {{ p.payment_method | replace('_',' ') | title }}</span>
+        <strong>{{ p.amount | gnf }}</strong>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="POST"
+          action="{{ url_for('receipts.generate', sale_id=sale.id) }}"
+          novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="tcc-form-row">
+        <div class="tcc-form-group">
+          <label for="amount">Receipt Amount (GNF) <span class="req">*</span></label>
+          <input type="number" id="amount" name="amount" class="tcc-input"
+                 value="{{ amount_paid }}" min="1" required>
+          <span class="form-hint">Defaults to total amount paid so far.</span>
+        </div>
+        <div class="tcc-form-group">
+          <label for="issue_date">Issue Date</label>
+          <input type="date" id="issue_date" name="issue_date" class="tcc-input">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:.75rem;margin-top:1.25rem">
+        <button type="submit" class="btn-gold">
+          {{ icon('check', 16) }} Generate &amp; Save PDF
+        </button>
+        <a href="{{ url_for('sales.detail', id=sale.id) }}" class="btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
