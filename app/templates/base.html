@@ -1,0 +1,163 @@
+{% from 'partials/_icons.html' import icon %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}TCC{% endblock %} — Teamsylla Command Center</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+
+{% if session.user_id %}
+<div class="tcc-wrapper">
+
+  {# ─── Sidebar ──────────────────────────────────────────────────────── #}
+  <aside class="tcc-sidebar" id="sidebar">
+    <a href="{{ url_for('dashboard.index') }}" class="sidebar-brand">
+      <div class="brand-icon">T</div>
+      <div>
+        <div class="brand-text">Teamsylla</div>
+        <div class="brand-sub">Command Center</div>
+      </div>
+    </a>
+
+    <nav class="sidebar-nav">
+      {# ── Core ── #}
+      <div class="sidebar-section">Core</div>
+
+      <a href="{{ url_for('dashboard.index') }}"
+         class="{{ 'active' if request.endpoint and request.endpoint.startswith('dashboard') }}">
+        {{ icon('home', 18) }} Dashboard
+      </a>
+
+      {% if session.user_role in ['super_admin','administrator','technical_officer'] %}
+      <a href="{{ url_for('products.list') }}"
+         class="{{ 'active' if request.endpoint and request.endpoint.startswith('products') }}">
+        {{ icon('cube', 18) }} Products
+      </a>
+      {% endif %}
+
+      {% if session.user_role in ['super_admin','administrator','finance_officer','marketing_manager'] %}
+      <a href="{{ url_for('clients.list') }}"
+         class="{{ 'active' if request.endpoint and request.endpoint.startswith('clients') }}">
+        {{ icon('users', 18) }} Clients
+      </a>
+      {% endif %}
+
+      {# ── Finance ── #}
+      {% if session.user_role in ['super_admin','administrator','finance_officer','marketing_manager'] %}
+      <div class="sidebar-section">Finance</div>
+      <a href="{{ url_for('sales.list') }}"
+         class="{{ 'active' if request.endpoint and request.endpoint.startswith('sales') }}">
+        {{ icon('chart-bar', 18) }} Sales
+      </a>
+      {% endif %}
+
+      {% if session.user_role in ['super_admin','administrator','finance_officer'] %}
+      <a href="{{ url_for('receipts.list') }}"
+         class="{{ 'active' if request.endpoint and request.endpoint.startswith('receipts') }}">
+        {{ icon('receipt', 18) }} Receipts
+      </a>
+      {% endif %}
+
+      {# ── Coming Soon placeholders (V1.1 / V1.2) ── #}
+      <div class="sidebar-section">Coming in V1.1</div>
+      <a href="#" style="opacity:.35;cursor:not-allowed">
+        {{ icon('globe', 18) }} Deployments
+      </a>
+      <a href="#" style="opacity:.35;cursor:not-allowed">
+        {{ icon('shield', 18) }} Credentials
+      </a>
+
+      <div class="sidebar-section">Coming in V1.2</div>
+      <a href="#" style="opacity:.35;cursor:not-allowed">
+        {{ icon('user-group', 18) }} Agents
+      </a>
+
+      {# ── Admin ── #}
+      {% if session.user_role == 'super_admin' %}
+      <div class="sidebar-section">Admin</div>
+      <a href="{{ url_for('admin.users') }}"
+         class="{{ 'active' if request.endpoint and request.endpoint.startswith('admin') }}">
+        {{ icon('cog', 18) }} Administration
+      </a>
+      {% endif %}
+    </nav>
+
+    {# ── User footer ── #}
+    <div class="sidebar-footer">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--tcc-gold);
+                  display:flex;align-items:center;justify-content:center;
+                  color:var(--tcc-navy);font-weight:700;font-size:.9rem;flex-shrink:0">
+        {{ session.user_name[0] | upper if session.user_name else 'U' }}
+      </div>
+      <div>
+        <div class="user-name">{{ session.user_name }}</div>
+        <div class="user-role">{{ session.user_role | replace('_',' ') | title }}</div>
+      </div>
+      <form method="POST" action="{{ url_for('auth.logout') }}" style="margin:0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-logout" title="Log out">
+          {{ icon('logout', 18) }}
+        </button>
+      </form>
+    </div>
+  </aside>
+
+  {# ─── Main content ─────────────────────────────────────────────────── #}
+  <div class="tcc-main">
+    <header class="tcc-topbar">
+      <h1>{% block page_title %}{% endblock %}</h1>
+      <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}" style="color:var(--tcc-muted);text-decoration:none">Home</a></li>
+          {% block breadcrumb %}{% endblock %}
+        </ol>
+      </nav>
+      {% block topbar_actions %}{% endblock %}
+    </header>
+
+    <main class="tcc-content">
+      {# Flash messages #}
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div class="flash-wrap">
+        {% for category, message in messages %}
+        <div class="flash flash-{{ category }}">
+          {% if category == 'success' %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
+          {% elif category in ['danger','error'] %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          {% else %}
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>
+          {% endif %}
+          {{ message }}
+          <button class="flash-close" type="button" aria-label="Dismiss">&times;</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+</div>
+
+{% else %}
+{# Unauthenticated layout — just the page content #}
+{% block auth_content %}{% endblock %}
+{% endif %}
+
+<script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
+<script src="{{ url_for('static', filename='vendor/alpine.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='vendor/chart.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
